@@ -17,7 +17,7 @@ func main() {
 	}
 
 	logFilePath := filepath.Join(os.TempDir(), "mws", "mws.log")
-	if err := os.MkdirAll(filepath.Dir(logFilePath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(logFilePath), 0755); err != nil {
 		fmt.Println("Failed:", err)
 		return
 	}

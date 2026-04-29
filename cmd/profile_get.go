@@ -32,7 +32,7 @@ func NewProfileGetCmd(pm service.ProfileManager) *cobra.Command {
 
 			cmd.Printf("Profile %s:\n", name)
 			data, _ := json.MarshalIndent(profile, "", "  ")
-			fmt.Println(string(data))
+			cmd.Println(string(data))
 			return nil
 		},
 	}
