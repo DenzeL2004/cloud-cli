@@ -1,51 +1,92 @@
 /*
 Copyright © 2026 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
+	"fmt"
+	"io"
+	"mws/internal/service"
 	"os"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
+// NewRootCmd builds the root Cobra command for the mws CLI.
+func NewRootCmd(pm service.ProfileManager) *cobra.Command {
+	var rootCmd = &cobra.Command{
+		Use:   "mws",
+		Short: "CLI for managing local YAML profiles",
+		Args: cobra.NoArgs,
+	}
 
+	rootCmd.AddCommand(NewProfileCmd(pm))
+	configureRootHelp(rootCmd)
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "cloud-cli",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	return rootCmd
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(pm service.ProfileManager) {
+	rootCmd := NewRootCmd(pm)
+
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
-func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
+func configureRootHelp(rootCmd *cobra.Command) {
+	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		w := cmd.OutOrStdout()
+		tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.cloud-cli.yaml)")
+		fmt.Fprintf(w, "%s\n\n", cmd.Short)
+		fmt.Fprintln(w, "Usage:")
+		fmt.Fprintln(w, "  mws [command]")
+		fmt.Fprintln(w)
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+		fmt.Fprintln(w, "Commands:")
+		fmt.Fprintln(tw, "  help [command]\tHelp about any command")
+		printCommandsRecursively(tw, cmd, "  ")
+		tw.Flush()
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, `Use "mws help [command]" for more information about a command.`)
+	})
 }
 
+func printCommandsRecursively(w io.Writer, cmd *cobra.Command, indent string) {
+	for _, child := range cmd.Commands() {
+		if !child.IsAvailableCommand() || child.IsAdditionalHelpTopicCommand() {
+			continue
+		}
 
+		if child.Name() == "completion" || child.Name() == "help" {
+			continue
+		}
+
+		commandWithFlags := child.Use + formatFlagsInline(child)
+		fmt.Fprintf(w, "%s%s\t%s\n", indent, commandWithFlags, child.Short)
+		printCommandsRecursively(w, child, indent+"  ")
+	}
+}
+
+func formatFlagsInline(cmd *cobra.Command) string {
+	var flags []string
+
+	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Name == "help" {
+			return
+		}
+		
+		flags = append(flags, "--"+flag.Name)
+	})
+
+	if len(flags) == 0 {
+		return ""
+	}
+
+	return " " + strings.Join(flags, " ")
+}

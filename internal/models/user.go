@@ -1,6 +1,6 @@
 package models
 
 type Profile struct {
-	Name    string `yaml:"name"`
+	User    string `yaml:"user"`
 	Project string `yaml:"project"`
 }

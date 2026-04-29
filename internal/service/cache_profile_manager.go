@@ -1,7 +1,7 @@
 package service
 
 import (
-	"cloud-cli/internal/models"
+	"mws/internal/models"
 	"errors"
 	"log/slog"
 	"os"
@@ -11,17 +11,24 @@ import (
 )
 
 var (
+	// ErrProfileNotFound is returned when trying to access a missing profile.
 	ErrProfileNotFound      = errors.New("profile not found")
+
+	// ErrProfileAlreadyExists is returned when trying to create a profile that already exists.
 	ErrProfileAlreadyExists = errors.New("profile already exists")
 )
 
+// CacheProfileManager implements ProfileManager with an in-memory cache.
 type CacheProfileManager struct {
+	// saveDir is the directory where profiles are stored on disk.
 	saveDir      string
+	// profileNames caches profile names for faster existence checks.
 	profileNames map[string]struct{}
 
 	logger *slog.Logger
 }
 
+// NewCacheProfileManager creates a new CacheProfileManager and loads existing profiles from disk.
 func NewCacheProfileManager(saveDir string, logger *slog.Logger) (*CacheProfileManager, error) {
 	if logger == nil {
 		logger = slog.Default()
@@ -147,6 +154,7 @@ func GetFileName(dirPath string, name string) string {
 	return dirPath + "/" + name + ".yaml"
 }
 
+// SaveProfileToFile stores a profile in a YAML file.
 func SaveProfileToFile(filename string, profile *models.Profile) error {
 	data, err := yaml.Marshal(profile)
 	if err != nil {
@@ -156,6 +164,7 @@ func SaveProfileToFile(filename string, profile *models.Profile) error {
 	return os.WriteFile(filename, data, 0644)
 }
 
+// LoadProfileFromFile reads a profile from a YAML file.
 func LoadProfileFromFile(filename string) (*models.Profile, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
